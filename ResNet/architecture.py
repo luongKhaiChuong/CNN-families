@@ -11,10 +11,10 @@ class BasicBlock(nn.Module):
         super().__init__()
         self.residual = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, stride, 1, bias=False),
-            nn.BatchNorm(out_channels),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels, 3, 1, 1, bias=False),
-            nn.BatchNorm(out_channels)
+            nn.BatchNorm2d(out_channels)
         )
         self.skip_connect = nn.Sequential()
         if stride !=1 or in_channels!=out_channels:
@@ -29,7 +29,7 @@ class Bottleneck(nn.Module):
     expansion_rate = 4
     def __init__(self,
                  in_channels,
-                 out_channels,
+                 out_channels, 
                  stride=1):
         super().__init__()
         self.bottleneck = nn.Sequential(
@@ -45,7 +45,7 @@ class Bottleneck(nn.Module):
         self.skip_connect = nn.Sequential()
         if stride!=1 or in_channels != self.expansion_rate * out_channels:
             self.skip_connect = nn.Sequential(
-                nn.Conv2d(in_channels, self.expansion_rate * out_channels),
+                nn.Conv2d(in_channels, self.expansion_rate * out_channels, 1, stride, bias=False),
                 nn.BatchNorm2d(self.expansion_rate * out_channels)
             )
     def forward(self, x):
@@ -69,7 +69,7 @@ class ResNet(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(512 * block.expansion_rate, num_classes)
-    def _make_layer(self, block, in_channels, out_channels, blocks, stride):
+    def _make_layer(self, block, out_channels, blocks, stride):
         layers = []
         layers.append(block(self.in_channels, out_channels, stride))
         self.in_channels = block.expansion_rate * out_channels
@@ -86,6 +86,7 @@ class ResNet(nn.Module):
         x = torch.flatten(x, 1)
         x = self.fc(x)
         return x
+
 def resnet18(num_classes=1000):
     return ResNet(BasicBlock, [2, 2, 2, 2], num_classes)
 
@@ -102,10 +103,11 @@ def resnet152(num_classes=1000):
     return ResNet(Bottleneck, [3, 8, 36, 3], num_classes)
 
 if __name__ == "__main__":
-    model = resnet18()
+    model1 = resnet18(num_classes=10)
+    model2 = resnet101(num_classes=10)
     x = torch.randn(1, 3, 224, 224)
-    y = model(x)
-    print(f"Output shape ResNet-18: {y.shape}")
+    print (model1(x).shape)
+    print (model2(x).shape)
 """
 Công thức tính số lớp:
 Các model BasicBlock: 1 cnn đầu + 2 cnn layer mỗi block * (tổng số block mỗi layer) + 1 fc
